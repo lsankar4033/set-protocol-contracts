@@ -83,6 +83,13 @@ contract CoreFactory is
             _callData
         );
 
+        for (uint256 i = 0; i < _components.length; i++) {
+            require(
+                _components[i] != newSetTokenAddress,
+                "Core.create: Set token address cannot be component of Set"
+            );
+        }
+
         // Add Set to the mapping of tracked Sets
         state.validSets[newSetTokenAddress] = true;
 
