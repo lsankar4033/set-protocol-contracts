@@ -38,6 +38,9 @@ export class AuthorizationStage implements DeploymentStageInterface {
     this._networkName = getNetworkName();
     this._deployerAccount = this._web3.eth.accounts.privateKeyToAccount(getPrivateKey());
 
+    this._web3.eth.accounts.wallet.add(this._deployerAccount);
+    this._web3.eth.defaultAccount = this._deployerAccount.address;
+
     const coreAddress = await getContractAddress('Core');
     this._coreContract = await CoreContract.at(
       coreAddress,

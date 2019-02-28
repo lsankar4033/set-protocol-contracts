@@ -19,7 +19,7 @@ export async function getWeb3Instance(): Promise<any> {
 
 export let TX_DEFAULTS = {
   gas: 6700000, // 6.7M
-  gasPrice: 10000000, // 10 gWei
+  gasPrice: 10000000000, // 10 gWei
 };
 
 export async function deployContract(bytecode, web3, contractName): Promise<string> {
