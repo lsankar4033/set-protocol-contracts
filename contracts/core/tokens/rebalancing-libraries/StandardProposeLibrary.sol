@@ -161,6 +161,7 @@ library StandardProposeLibrary {
         returns(RebalancingSetState.State memory)
     {
         RebalancingSetState.State memory newState = _state;
+        
         newState.rebalance.auctionStartTime = _auctionStartTime;
         newState.rebalance.auctionTimeToPivot = _auctionTimeToPivot;
         newState.rebalance.auctionStartPrice = _auctionStartPrice;

@@ -17,13 +17,8 @@
 pragma solidity 0.5.4;
 pragma experimental "ABIEncoderV2";
 
-import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
-import { CommonMath } from "../../../lib/CommonMath.sol";
 import { ICore } from "../../interfaces/ICore.sol";
-import { IVault } from "../../interfaces/IVault.sol";
-import { ISetToken } from "../../interfaces/ISetToken.sol";
+import { IRebalancingSetFactory } from "../../interfaces/IRebalancingSetFactory.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
 import { RebalancingSetState } from "./RebalancingSetState.sol";
 
@@ -32,11 +27,9 @@ import { RebalancingSetState } from "./RebalancingSetState.sol";
  * @title RebalancingSetLibrary
  * @author Set Protocol
  *
- * Default implementation of Rebalancing Set Token endFailedAuction function
+ * xxx
  */
 library RebalancingSetLibrary {
-    using SafeMath for uint256;
-
     function validateConstructor(
         address _factory,
         address _manager,
@@ -46,7 +39,6 @@ library RebalancingSetLibrary {
         uint256 _rebalanceInterval
     )
         internal
-        view
     {
            // Require initial unit shares is non-zero
         require(

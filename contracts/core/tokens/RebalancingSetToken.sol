@@ -32,6 +32,7 @@ import { ISetToken } from "../interfaces/ISetToken.sol";
 import { IVault } from "../interfaces/IVault.sol";
 import { IWhiteList } from "../interfaces/IWhiteList.sol";
 import { RebalancingHelperLibrary } from "../lib/RebalancingHelperLibrary.sol";
+import { RebalancingSetLibrary } from "./rebalancing-libraries/RebalancingSetLibrary.sol";
 import { RebalancingSetState } from "./rebalancing-libraries/RebalancingSetState.sol";
 import { StandardFailAuctionLibrary } from "./rebalancing-libraries/StandardFailAuctionLibrary.sol";
 import { StandardPlaceBidLibrary } from "./rebalancing-libraries/StandardPlaceBidLibrary.sol";
@@ -118,8 +119,6 @@ contract RebalancingSetToken is
             _rebalanceInterval
         );
 
-        IRebalancingSetFactory tokenFactory = IRebalancingSetFactory(_factory);
-
         state.core = IRebalancingSetFactory(_factory).core();
         state.vault = ICore(state.core).vault();
         state.componentWhiteListAddress = _componentWhiteList;
@@ -178,16 +177,6 @@ contract RebalancingSetToken is
             _auctionPivotPrice,
             state
         );
-
-        // state.rebalance.auctionStartTime = auctionStartTime;
-        // state.rebalance.auctionTimeToPivot = _auctionTimeToPivot;
-        // state.rebalance.auctionStartPrice = _auctionStartPrice;
-        // state.rebalance.auctionPivotPrice = _auctionPivotPrice;
-        // state.rebalance.nextSet = _nextSet;
-        // state.rebalance.auctionLibrary = _auctionLibrary;
-        // state.rebalance.proposalStartTime = block.timestamp;
-        // state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Proposal;
-
         emit RebalanceProposed(
             _nextSet,
             _auctionLibrary,
@@ -207,9 +196,6 @@ contract RebalancingSetToken is
 
         // Update state parameters
         state = StandardStartRebalanceLibrary.updateState(state);
-        // state.rebalance.startingCurrentSetAmount = state.bidding.remainingCurrentSets;
-        // state.rebalance.auctionStartTime = block.timestamp;
-        // state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Rebalance;
 
         emit RebalanceStarted(state.currentSet, state.rebalance.nextSet);
     }
@@ -336,24 +322,6 @@ contract RebalancingSetToken is
     {
         RebalancingSetLibrary.validateMint(state);
 
-        // // Check that function caller is Core
-        // require(
-        //     msg.sender == state.core,
-        //     "RebalancingSetToken.mint: Sender must be core"
-        // );
-
-        // // Check that set is not in Rebalance State
-        // require(
-        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
-        //     "RebalancingSetToken.mint: Cannot mint during Rebalance"
-        // );
-
-        // // Check that set is not in Drawdown State
-        // require(
-        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Drawdown,
-        //     "RebalancingSetToken.mint: Cannot mint during Drawdown"
-        // );
-
         // Update token balance of the manager
         _mint(_issuer, _quantity);
     }
@@ -372,28 +340,6 @@ contract RebalancingSetToken is
         external
     {
         RebalancingSetLibrary.validateBurn(state);
-
-        // // Check that set is not in Rebalancing State
-        // require(
-        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
-        //     "RebalancingSetToken.burn: Cannot burn during Rebalance"
-        // );
-
-        // // Check to see if state is Drawdown
-        // if (state.rebalance.rebalanceState == RebalancingHelperLibrary.State.Drawdown) {
-        //     // In Drawdown Sets can only be burned as part of the withdrawal process
-        //     require(
-        //         ICore(state.core).validModules(msg.sender),
-        //         "RebalancingSetToken.burn: Set cannot be redeemed during Drawdown"
-        //     );
-        // } else {
-        //     // When in non-Rebalance or Drawdown state, check that function caller is Core
-        //     // so that Sets can be redeemed
-        //     require(
-        //         msg.sender == state.core,
-        //         "RebalancingSetToken.burn: Sender must be core"
-        //     );
-        // }
 
         _burn(_from, _quantity);
     }
