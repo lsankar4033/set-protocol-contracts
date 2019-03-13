@@ -25,6 +25,7 @@ import { IRebalancingSetFactory } from "../../interfaces/IRebalancingSetFactory.
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { IWhiteList } from "../../interfaces/IWhiteList.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
+import { RebalancingSetState } from "./RebalancingSetState.sol";
 
 
 /**
@@ -38,27 +39,24 @@ library StandardProposeLibrary {
 
     /* ============ Structs ============ */
 
-    struct ProposeAuctionParameters {
-        address manager;
-        address currentSet;
-        address coreAddress;
-        uint256 lastRebalanceTimestamp;
-        uint256 rebalanceInterval;
-        uint8 rebalanceState;
-    }
+    // struct ProposeAuctionParameters {
+    //     address manager;
+    //     address currentSet;
+    //     address coreAddress;
+    //     uint256 lastRebalanceTimestamp;
+    //     uint256 rebalanceInterval;
+    //     uint8 rebalanceState;
+    // }
 
     /* ============ Internal Functions ============ */
 
     /**
      * Function used to validate inputs to propose function and initialize auctionParameters struct
      *
-     * @param _nextSet                      The Set to rebalance into
      * @param _auctionLibrary               The library used to calculate the Dutch Auction price
      * @param _auctionTimeToPivot           The amount of time for the auction to go ffrom start to pivot price
      * @param _auctionStartPrice            The price to start the auction at
      * @param _auctionPivotPrice            The price at which the price curve switches from linear to exponential
-     * @param _componentWhiteListAddress    Component WhiteList address
-     * @param _proposeParameters            Rebalancing Set Token state parameters needed to execute logic
      * @return                              Struct containing auction price curve parameters
      */
     function propose(
@@ -67,33 +65,32 @@ library StandardProposeLibrary {
         uint256 _auctionTimeToPivot,
         uint256 _auctionStartPrice,
         uint256 _auctionPivotPrice,
-        address _factoryAddress,
-        address _componentWhiteListAddress,
-        ProposeAuctionParameters memory _proposeParameters
+        RebalancingSetState.RebalancingState storage _rebalancingState,
+        RebalancingSetState.State storage _state
     )
         public
         returns (RebalancingHelperLibrary.AuctionPriceParameters memory)
     {
-        ICore coreInstance = ICore(_proposeParameters.coreAddress);
-        IRebalancingSetFactory factoryInstance = IRebalancingSetFactory(_factoryAddress);
+        ICore coreInstance = ICore(_state.core);
+        IRebalancingSetFactory factoryInstance = IRebalancingSetFactory(_state.factory);
 
         // Make sure it is manager that is proposing the rebalance
         require(
-            msg.sender == _proposeParameters.manager,
+            msg.sender == _state.manager,
             "RebalancingSetToken.propose: Sender must be manager"
         );
 
         // New Proposal can only be made in Default and Proposal state
         require(
-            _proposeParameters.rebalanceState == uint8(RebalancingHelperLibrary.State.Default) ||
-            _proposeParameters.rebalanceState == uint8(RebalancingHelperLibrary.State.Proposal),
+            uint8(_rebalancingState.rebalanceState) == uint8(RebalancingHelperLibrary.State.Default) ||
+            uint8(_rebalancingState.rebalanceState) == uint8(RebalancingHelperLibrary.State.Proposal),
             "RebalancingSetToken.propose: State must be in Propose or Default"
         );
 
         // Make sure enough time has passed from last rebalance to start a new proposal
         require(
-            block.timestamp >= _proposeParameters.lastRebalanceTimestamp.add(
-                _proposeParameters.rebalanceInterval
+            block.timestamp >= _rebalancingState.lastRebalanceTimestamp.add(
+                _rebalancingState.rebalanceInterval
             ),
             "RebalancingSetToken.propose: Rebalance interval not elapsed"
         );
@@ -107,7 +104,7 @@ library StandardProposeLibrary {
         // Check proposed components on whitelist. This is to ensure managers are unable to add contract addresses
         // to a propose that prohibit the set from carrying out an auction i.e. a token that only the manager possesses
         require(
-            IWhiteList(_componentWhiteListAddress).areValidAddresses(ISetToken(_nextSet).getComponents()),
+            IWhiteList(_state.componentWhiteListAddress).areValidAddresses(ISetToken(_nextSet).getComponents()),
             "RebalancingSetToken.propose: Proposed set contains invalid component token"
         );
 
@@ -131,7 +128,7 @@ library StandardProposeLibrary {
 
         // Check that the propoosed set natural unit is a multiple of current set natural unit, or vice versa.
         // Done to make sure that when calculating token units there will are no rounding errors.
-        uint256 currentNaturalUnit = ISetToken(_proposeParameters.currentSet).naturalUnit();
+        uint256 currentNaturalUnit = ISetToken(_state.currentSet).naturalUnit();
         uint256 nextSetNaturalUnit = ISetToken(_nextSet).naturalUnit();
         require(
             Math.max(currentNaturalUnit, nextSetNaturalUnit) %
