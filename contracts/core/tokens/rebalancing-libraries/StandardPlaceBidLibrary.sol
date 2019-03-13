@@ -21,7 +21,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { ICore } from "../../interfaces/ICore.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
-import { StandardStartRebalanceLibrary } from "./StandardStartRebalanceLibrary.sol";
+import { RebalancingSetState } from "./RebalancingSetState.sol";
 
 
 /**
@@ -39,50 +39,43 @@ library StandardPlaceBidLibrary {
      * Place bid during rebalance auction. Can only be called by Core.
      *
      * @param _quantity                 The amount of currentSet to be rebalanced
-     * @param _auctionLibrary           Auction library used in rebalance
-     * @param _coreAddress              Core address
-     * @param _biddingParameters        Struct containing relevant data for calculating token flows
      * @param _auctionParameters        Struct containing auction price curve parameters
-     * @param _rebalanceState           State of rebalancing set token
      * @return inflowUnitArray          Array of amount of tokens inserted into system in bid
      * @return outflowUnitArray         Array of amount of tokens taken out of system in bid
      */
     function placeBid(
         uint256 _quantity,
-        address _auctionLibrary,
-        address _coreAddress,
-        StandardStartRebalanceLibrary.BiddingParameters memory _biddingParameters,
         RebalancingHelperLibrary.AuctionPriceParameters memory _auctionParameters,
-        uint8 _rebalanceState
+        RebalancingSetState.State storage _state
     )
-        public
+        internal
         view
         returns (uint256[] memory, uint256[] memory)
     {
         // Make sure sender is a module
         require(
-            ICore(_coreAddress).validModules(msg.sender),
+            ICore(_state.core).validModules(msg.sender),
             "RebalancingSetToken.placeBid: Sender must be approved module"
         );
 
         // Make sure that bid amount is multiple of minimum bid amount
         require(
-            _quantity % _biddingParameters.minimumBid == 0,
+            _quantity % _state.bidding.minimumBid == 0,
             "RebalancingSetToken.placeBid: Must bid multiple of minimum bid"
         );
 
         // Make sure that bid Amount is less than remainingCurrentSets
         require(
-            _quantity <= _biddingParameters.remainingCurrentSets,
+            _quantity <= _state.bidding.remainingCurrentSets,
             "RebalancingSetToken.placeBid: Bid exceeds remaining current sets"
         );
 
         return RebalancingHelperLibrary.getBidPrice(
             _quantity,
-            _auctionLibrary,
-            _biddingParameters,
+            _state.rebalance.auctionLibrary,
+            _state.bidding,
             _auctionParameters,
-            _rebalanceState
+            uint8(_state.rebalance.rebalanceState)
         );
     }
 }

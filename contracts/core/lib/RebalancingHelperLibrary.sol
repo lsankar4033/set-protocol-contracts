@@ -21,7 +21,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IAuctionPriceCurve } from "./auction-price-libraries/IAuctionPriceCurve.sol";
 import { ICore } from "../interfaces/ICore.sol";
-import { StandardStartRebalanceLibrary } from "../tokens/rebalancing-libraries/StandardStartRebalanceLibrary.sol";
+import { RebalancingSetState } from "../tokens/rebalancing-libraries/RebalancingSetState.sol";
 
 /**
  * @title RebalancingHelperLibrary
@@ -87,7 +87,7 @@ library RebalancingHelperLibrary {
     function getBidPrice(
         uint256 _quantity,
         address _auctionLibrary,
-        StandardStartRebalanceLibrary.BiddingParameters memory _biddingParameters,
+        RebalancingSetState.BiddingState memory _biddingParameters,
         AuctionPriceParameters memory _auctionParameters,
         uint8 _rebalanceState
     )
@@ -134,7 +134,7 @@ library RebalancingHelperLibrary {
         uint256 _unitsMultiplier,
         uint256 _priceNumerator,
         uint256 _priceDivisor,
-        StandardStartRebalanceLibrary.BiddingParameters memory _biddingParameters
+        RebalancingSetState.BiddingState memory _biddingParameters
     )
         public
         pure

@@ -25,7 +25,7 @@ import { ICore } from "../../interfaces/ICore.sol";
 import { IVault } from "../../interfaces/IVault.sol";
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
-import { StandardStartRebalanceLibrary } from "./StandardStartRebalanceLibrary.sol";
+import { RebalancingSetState } from "./RebalancingSetState.sol";
 
 
 /**
@@ -43,28 +43,21 @@ library StandardFailAuctionLibrary {
      *
      * @param _startingCurrentSetAmount     Amount of current set at beginning or rebalance
      * @param _calculatedUnitShares         Calculated unitShares amount if rebalance were to be settled
-     * @param _currentSet                   The Set that failed to rebalance
-     * @param _coreAddress                  Core address
      * @param _auctionParameters            Struct containing auction price curve parameters
-     * @param _biddingParameters            Struct containing relevant data for calculating token flows
-     * @param _rebalanceState               State rebalancing set token is in
      * @return                              State of Rebalancing Set after function called
      */
     function endFailedAuction(
         uint256 _startingCurrentSetAmount,
         uint256 _calculatedUnitShares,
-        address _currentSet,
-        address _coreAddress,
         RebalancingHelperLibrary.AuctionPriceParameters memory _auctionParameters,
-        StandardStartRebalanceLibrary.BiddingParameters memory _biddingParameters,
-        uint8 _rebalanceState
+        RebalancingSetState.State storage _state
     )
-        public
+        internal
         returns (uint8)
     {
         // Token must be in Rebalance State
         require(
-            _rebalanceState ==  uint8(RebalancingHelperLibrary.State.Rebalance),
+            uint8(_state.rebalance.rebalanceState) ==  uint8(RebalancingHelperLibrary.State.Rebalance),
             "RebalanceAuctionModule.endFailedAuction: Rebalancing Set Token must be in Rebalance State"
         );
 
@@ -88,12 +81,12 @@ library StandardFailAuctionLibrary {
          * However, if enough sets have been bid on. Then allow auction to fail and enter Drawdown state if
          * and only if the calculated post-auction unitShares is equal to 0.
          */
-        if (_biddingParameters.remainingCurrentSets >= _biddingParameters.minimumBid) {
+        if (_state.bidding.remainingCurrentSets >= _state.bidding.minimumBid) {
             // Check if any bids have been placed
-            if (_startingCurrentSetAmount == _biddingParameters.remainingCurrentSets) {
+            if (_startingCurrentSetAmount == _state.bidding.remainingCurrentSets) {
                 // If bid not placed, reissue current Set
-                ICore(_coreAddress).issueInVault(
-                    _currentSet,
+                ICore(_state.core).issueInVault(
+                    _state.currentSet,
                     _startingCurrentSetAmount
                 );
 

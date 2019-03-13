@@ -23,6 +23,7 @@ import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { IVault } from "../../interfaces/IVault.sol";
 import { IWhiteList } from "../../interfaces/IWhiteList.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
+import { StandardStartRebalanceLibrary } from "./StandardStartRebalanceLibrary.sol";
 
 
 /**
@@ -37,45 +38,45 @@ contract RebalancingSetState {
     /* ============ Structs ============ */
 
     struct State {
-        // Address of the Core contract
         address core;
-
-        // Address of the Factory contract
         address factory;
-
-        // Address of the Vault contract
         address vault;
-
         address componentWhiteListAddress;
-
-        uint256 naturalUnit;
         address manager;
-        
-        // State updated after every rebalance
         address currentSet;
+
         uint256 unitShares;
+        uint256 naturalUnit;
+
         RebalancingState rebalance;
+        BiddingState bidding;
     }
 
+    // State needed for auction/rebalance
     struct RebalancingState {
+        address nextSet;
+        address auctionLibrary;
+
+        RebalancingHelperLibrary.State rebalanceState;
+
         // State governing rebalance cycle
         uint256 proposalPeriod;
         uint256 rebalanceInterval;
-
-        RebalancingHelperLibrary.State rebalanceState;
         uint256 lastRebalanceTimestamp;
-        // State to track proposal period
         uint256 proposalStartTime;
-
-        // State needed for auction/rebalance
-        address nextSet;
-        address auctionLibrary;
         uint256 startingCurrentSetAmount;
-
         uint256 auctionStartTime;
         uint256 auctionTimeToPivot;
         uint256 auctionStartPrice;
         uint256 auctionPivotPrice;        
+    }
+
+    struct BiddingState {
+        uint256 minimumBid;
+        uint256 remainingCurrentSets;
+        uint256[] combinedCurrentUnits;
+        uint256[] combinedNextSetUnits;
+        address[] combinedTokenArray;
     }
 
     /* ============ State Variables ============ */
@@ -235,7 +236,25 @@ contract RebalancingSetState {
     }
 
     function auctionParameters()
-        public
+        external
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory auctionParameters = new uint256[](4);
+        auctionParameters[0] = state.rebalance.auctionStartTime;
+        auctionParameters[1] = state.rebalance.auctionTimeToPivot;
+        auctionParameters[2] = state.rebalance.auctionStartPrice;
+        auctionParameters[3] = state.rebalance.auctionPivotPrice;
+        return auctionParameters;
+    }
+
+    /*
+     * Get auctionParameters of Rebalancing Set
+     *
+     * @return  auctionParams       Object with auction information
+     */
+    function getAuctionParameters()
+        internal
         view
         returns (RebalancingHelperLibrary.AuctionPriceParameters memory)
     {
@@ -245,24 +264,6 @@ contract RebalancingSetState {
             auctionStartPrice: state.rebalance.auctionStartPrice,
             auctionPivotPrice: state.rebalance.auctionPivotPrice
         });
-    }
-
-    /*
-     * Get auctionParameters of Rebalancing Set
-     *
-     * @return  auctionParams       Object with auction information
-     */
-    function getAuctionParameters()
-        external
-        view
-        returns (uint256[] memory)
-    {
-        uint256[] memory auctionParams = new uint256[](4);
-        auctionParams[0] = state.rebalance.auctionStartTime;
-        auctionParams[1] = state.rebalance.auctionTimeToPivot;
-        auctionParams[2] = state.rebalance.auctionStartPrice;
-        auctionParams[3] = state.rebalance.auctionPivotPrice;
-        return auctionParams;
     }
 
     /*
@@ -280,5 +281,60 @@ contract RebalancingSetState {
         returns (bool)
     {
         return _tokenAddress == state.currentSet;
+    }
+
+    /*
+     * Get state.bidding of Rebalancing Set
+     *
+     * @return  biddingParams       Object with bidding information
+     */
+    function biddingParameters()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory biddingParams = new uint256[](2);
+        biddingParams[0] = state.bidding.minimumBid;
+        biddingParams[1] = state.bidding.remainingCurrentSets;
+        return biddingParams;
+    }
+
+    /*
+     * Get combinedTokenArray of Rebalancing Set
+     *
+     * @return  combinedTokenArray
+     */
+    function getCombinedTokenArray()
+        external
+        view
+        returns (address[] memory)
+    {
+        return state.bidding.combinedTokenArray;
+    }
+
+    /*
+     * Get combinedCurrentUnits of Rebalancing Set
+     *
+     * @return  combinedCurrentUnits
+     */
+    function getCombinedCurrentUnits()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return state.bidding.combinedCurrentUnits;
+    }
+
+    /*
+     * Get combinedNextSetUnits of Rebalancing Set
+     *
+     * @return  combinedNextSetUnits
+     */
+    function getCombinedNextSetUnits()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return state.bidding.combinedNextSetUnits;
     }
 }

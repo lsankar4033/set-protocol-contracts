@@ -26,7 +26,6 @@ import { WhiteList } from '../../artifacts/ts/WhiteList';
 import { DEPLOYED_SETS_INFO } from '../deployedContractParameters';
 import dependencies from '../dependencies';
 import constants from '../constants';
-import networkConstants from '../network-constants';
 
 describe('Deployment: Rebalancing', () => {
 

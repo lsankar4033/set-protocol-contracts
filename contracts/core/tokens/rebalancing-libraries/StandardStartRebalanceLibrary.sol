@@ -41,13 +41,6 @@ library StandardStartRebalanceLibrary {
     using AddressArrayUtils for address[];
 
     /* ============ Structs ============ */
-    struct BiddingParameters {
-        uint256 minimumBid;
-        uint256 remainingCurrentSets;
-        uint256[] combinedCurrentUnits;
-        uint256[] combinedNextSetUnits;
-        address[] combinedTokenArray;
-    }
 
     struct SetsDetails {
         uint256 currentSetNaturalUnit;
@@ -68,8 +61,8 @@ library StandardStartRebalanceLibrary {
     function startRebalance(
         RebalancingSetState.State storage _state
     )
-        public
-        returns (BiddingParameters memory)
+        internal
+        returns (RebalancingSetState.BiddingState memory)
     {
         // Must be in "Proposal" state before going into "Rebalance" state
         require(
@@ -84,7 +77,7 @@ library StandardStartRebalanceLibrary {
         );
 
         // Create combined array data structures and calculate minimum bid needed for auction
-        BiddingParameters memory biddingParameters = setUpBiddingParameters(
+        RebalancingSetState.BiddingState memory biddingParameters = setUpBiddingState(
             _state.currentSet,
             _state.rebalance.nextSet,
             _state.rebalance.auctionLibrary
@@ -117,14 +110,14 @@ library StandardStartRebalanceLibrary {
      * @param _auctionLibrary       Address of auction library being used in rebalance
      * @return                      Struct containing bidding parameters
      */
-    function setUpBiddingParameters(
+    function setUpBiddingState(
         address _currentSet,
         address _nextSet,
         address _auctionLibrary
     )
         public
         view
-        returns (BiddingParameters memory)
+        returns (RebalancingSetState.BiddingState memory)
     {
         // Get set details for currentSet and nextSet (units, components, natural units)
         SetsDetails memory setsDetails = getUnderlyingSetsDetails(
@@ -159,7 +152,7 @@ library StandardStartRebalanceLibrary {
         );
 
         // Build Bidding Parameters struct and return
-        return BiddingParameters({
+        return RebalancingSetState.BiddingState({
             minimumBid: minimumBid,
             remainingCurrentSets: 0,
             combinedCurrentUnits: combinedCurrentUnits,
@@ -318,5 +311,19 @@ library StandardStartRebalanceLibrary {
         );
 
         return remainingCurrentSets;
+    }
+
+    function updateState(
+        RebalancingSetState.State storage _state
+    )
+        internal
+        returns(RebalancingSetState.State memory)
+    {
+        RebalancingSetState.State memory newState = _state;
+        newState.rebalance.startingCurrentSetAmount = _state.bidding.remainingCurrentSets;
+        newState.rebalance.auctionStartTime = block.timestamp;
+        newState.rebalance.rebalanceState = RebalancingHelperLibrary.State.Rebalance;
+
+        return newState;
     }
 }

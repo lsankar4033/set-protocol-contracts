@@ -57,7 +57,7 @@ library StandardProposeLibrary {
         uint256 _auctionPivotPrice,
         RebalancingSetState.State storage _state
     )
-        public
+        internal
         returns (RebalancingHelperLibrary.AuctionPriceParameters memory)
     {
         ICore coreInstance = ICore(_state.core);
@@ -146,5 +146,30 @@ library StandardProposeLibrary {
         returns(uint256)
     {
         return 0;
+    }
+
+    function updateState(
+        address _nextSet,
+        address _auctionLibrary,
+        uint256 _auctionStartTime,
+        uint256 _auctionTimeToPivot,
+        uint256 _auctionStartPrice,
+        uint256 _auctionPivotPrice,
+        RebalancingSetState.State storage _state
+    )
+        internal
+        returns(RebalancingSetState.State memory)
+    {
+        RebalancingSetState.State memory newState = _state;
+        newState.rebalance.auctionStartTime = _auctionStartTime;
+        newState.rebalance.auctionTimeToPivot = _auctionTimeToPivot;
+        newState.rebalance.auctionStartPrice = _auctionStartPrice;
+        newState.rebalance.auctionPivotPrice = _auctionPivotPrice;
+        newState.rebalance.nextSet = _nextSet;
+        newState.rebalance.auctionLibrary = _auctionLibrary;
+        newState.rebalance.proposalStartTime = block.timestamp;
+        newState.rebalance.rebalanceState = RebalancingHelperLibrary.State.Proposal;
+
+        return newState;
     }
 }

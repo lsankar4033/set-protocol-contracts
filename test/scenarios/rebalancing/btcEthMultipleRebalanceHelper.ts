@@ -740,7 +740,7 @@ export class BTCETHMultipleRebalanceWrapper {
     percentFromFairValue: BigNumber,
     tokenPrices: TokenPrices,
   ): Promise<BigNumber> {
-    const auctionPriceParameters = await this._rebalancingSetToken.getAuctionParameters.callAsync();
+    const auctionPriceParameters = await this._rebalancingSetToken.auctionParameters.callAsync();
     const auctionStartPrice = auctionPriceParameters[2];
     const auctionPivotPrice = auctionPriceParameters[3];
 
@@ -751,7 +751,7 @@ export class BTCETHMultipleRebalanceWrapper {
   private async _calculateImpliedBidTimeAsync(
     bidPrice: BigNumber,
   ): Promise<number> {
-    const auctionPriceParameters = await this._rebalancingSetToken.getAuctionParameters.callAsync();
+    const auctionPriceParameters = await this._rebalancingSetToken.auctionParameters.callAsync();
     const auctionTimeToPivot = this._rebalanceProgram.initializationParams.auctionTimeToPivot;
     const auctionStartPrice = auctionPriceParameters[2];
     const auctionPivotPrice = auctionPriceParameters[3];
@@ -777,7 +777,7 @@ export class BTCETHMultipleRebalanceWrapper {
   private async _executeBidCleanUpAsync(
     lastBidder: Address,
   ): Promise<void> {
-    const biddingParameters = await this._rebalancingSetToken.getBiddingParameters.callAsync();
+    const biddingParameters = await this._rebalancingSetToken.biddingParameters.callAsync();
     const bidAmount = biddingParameters[1].sub(
       biddingParameters[1].modulo(this._rebalanceProgram.generalRebalancingData.minimumBid)
     );
@@ -835,7 +835,7 @@ export class BTCETHMultipleRebalanceWrapper {
       await this._rebalancingSetToken.nextSet.callAsync()
     );
 
-    const auctionPriceParameters = await this._rebalancingSetToken.getAuctionParameters.callAsync();
+    const auctionPriceParameters = await this._rebalancingSetToken.auctionParameters.callAsync();
     const auctionStartPrice = auctionPriceParameters[2];
     const auctionPivotPrice = auctionPriceParameters[3];
     this._dataLogger.rebalanceFairValues.push(
@@ -848,7 +848,7 @@ export class BTCETHMultipleRebalanceWrapper {
       txHash
     );
 
-    const biddingParameters = await this._rebalancingSetToken.getBiddingParameters.callAsync();
+    const biddingParameters = await this._rebalancingSetToken.biddingParameters.callAsync();
     this._rebalanceProgram.generalRebalancingData.minimumBid = biddingParameters[0];
     this._rebalanceProgram.generalRebalancingData.initialRemainingSets = biddingParameters[1];
   }

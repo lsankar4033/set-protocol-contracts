@@ -617,7 +617,7 @@ contract('RebalancingSetToken', accounts => {
         await blockchain.increaseTimeAsync(defaultTimeToPivot.add(1));
 
 
-        const [minimumBid] = await rebalancingSetToken.getBiddingParameters.callAsync();
+        const [minimumBid] = await rebalancingSetToken.biddingParameters.callAsync();
         await rebalanceAuctionModule.bid.sendTransactionAsync(
           rebalancingSetToken.address,
           minimumBid
@@ -989,58 +989,6 @@ contract('RebalancingSetToken', accounts => {
     });
   });
 
-  describe('#getCombinedTokenArrayLength', async () => {
-    beforeEach(async () => {
-      const setTokensToDeploy = 2;
-      const setTokens = await rebalancingWrapper.createSetTokensAsync(
-        coreMock,
-        factory.address,
-        transferProxy.address,
-        setTokensToDeploy,
-      );
-
-      const currentSetToken = setTokens[0];
-      const nextSetToken = setTokens[1];
-
-      const proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await rebalancingWrapper.createDefaultRebalancingSetTokenAsync(
-        coreMock,
-        rebalancingFactory.address,
-        managerAccount,
-        currentSetToken.address,
-        proposalPeriod,
-      );
-
-      // Issue currentSetToken
-      await coreMock.issue.sendTransactionAsync(currentSetToken.address, ether(8), {from: deployerAccount});
-      await erc20Wrapper.approveTransfersAsync([currentSetToken], transferProxy.address);
-
-      // Use issued currentSetToken to issue rebalancingSetToken
-      const rebalancingSetQuantityToIssue = ether(7);
-      await coreMock.issue.sendTransactionAsync(rebalancingSetToken.address, rebalancingSetQuantityToIssue);
-
-      await rebalancingWrapper.defaultTransitionToRebalanceAsync(
-        coreMock,
-        rebalancingComponentWhiteList,
-        rebalancingSetToken,
-        nextSetToken,
-        constantAuctionPriceCurve.address,
-        managerAccount
-      );
-    });
-
-    async function subject(): Promise<BigNumber> {
-      return rebalancingSetToken.getCombinedTokenArrayLength.callAsync();
-    }
-
-    it('updates to the new rebalancing set correctly', async () => {
-      const actualArrayLength = await subject();
-
-      const expectedArrayLength = new BigNumber(3);
-      expect(actualArrayLength).to.be.bignumber.equal(expectedArrayLength);
-    });
-  });
-
   describe('#propose', async () => {
     let subjectRebalancingToken: Address;
     let subjectAuctionLibrary: Address;
@@ -1131,21 +1079,21 @@ contract('RebalancingSetToken', accounts => {
       it('updates the time to pivot correctly', async () => {
         await subject();
 
-        const [, newAuctionTimeToPivot] = await rebalancingSetToken.getAuctionParameters.callAsync();
+        const [, newAuctionTimeToPivot] = await rebalancingSetToken.auctionParameters.callAsync();
         expect(newAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
       });
 
       it('updates the auction start price correctly', async () => {
         await subject();
 
-        const [, , newAuctionStartPrice] = await rebalancingSetToken.getAuctionParameters.callAsync();
+        const [, , newAuctionStartPrice] = await rebalancingSetToken.auctionParameters.callAsync();
         expect(newAuctionStartPrice).to.be.bignumber.equal(subjectAuctionStartPrice);
       });
 
       it('updates the auction pivot price correctly', async () => {
         await subject();
 
-        const [, , , newAuctionPivotPrice] = await rebalancingSetToken.getAuctionParameters.callAsync();
+        const [, , , newAuctionPivotPrice] = await rebalancingSetToken.auctionParameters.callAsync();
         expect(newAuctionPivotPrice).to.be.bignumber.equal(subjectAuctionPivotPrice);
       });
 
@@ -1537,14 +1485,14 @@ contract('RebalancingSetToken', accounts => {
         await subject();
 
         const expectedRemainingCurrentSets = supply.div(currentSetNaturalUnit).round(0, 3).mul(currentSetNaturalUnit);
-        const [, actualRemainingCurrentSets] = await rebalancingSetToken.getBiddingParameters.callAsync();
+        const [, actualRemainingCurrentSets] = await rebalancingSetToken.biddingParameters.callAsync();
         expect(actualRemainingCurrentSets).to.be.bignumber.equal(expectedRemainingCurrentSets);
       });
 
       it('sets the correct startingCurrentSetAmount', async () => {
         await subject();
 
-        const [, expectedStartingCurrentSetAmount] = await rebalancingSetToken.getBiddingParameters.callAsync();
+        const [, expectedStartingCurrentSetAmount] = await rebalancingSetToken.biddingParameters.callAsync();
         const actualStartingCurrentSetAmount = await rebalancingSetToken.startingCurrentSetAmount.callAsync();
         expect(actualStartingCurrentSetAmount).to.be.bignumber.equal(expectedStartingCurrentSetAmount);
       });
@@ -1690,7 +1638,7 @@ contract('RebalancingSetToken', accounts => {
         const defaultTimeToPivot = new BigNumber(100000);
         await blockchain.increaseTimeAsync(defaultTimeToPivot.add(1));
 
-        const [minimumBid] = await rebalancingSetToken.getBiddingParameters.callAsync();
+        const [minimumBid] = await rebalancingSetToken.biddingParameters.callAsync();
         await rebalanceAuctionModule.bid.sendTransactionAsync(
           rebalancingSetToken.address,
           minimumBid

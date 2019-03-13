@@ -55,10 +55,6 @@ contract RebalancingSetToken is
     using Bytes32 for bytes32;
     using AddressArrayUtils for address[];
 
-    /* ============ State Variables ============ */
-
-    StandardStartRebalanceLibrary.BiddingParameters public biddingParameters;
-
     /* ============ Events ============ */
 
     event NewManagerAdded(
@@ -113,39 +109,16 @@ contract RebalancingSetToken is
             18
         )
     {
-        // Require initial unit shares is non-zero
-        require(
-            _initialUnitShares > 0,
-            "RebalancingSetToken.constructor: Unit shares must be positive"
+        RebalancingSetLibrary.validateConstructor(
+            _factory,
+            _manager,
+            _initialUnitShares,
+            _naturalUnit,
+            _proposalPeriod,
+            _rebalanceInterval
         );
 
         IRebalancingSetFactory tokenFactory = IRebalancingSetFactory(_factory);
-
-        require(
-            _naturalUnit >= tokenFactory.minimumNaturalUnit(),
-            "RebalancingSetToken.constructor: Natural Unit too low"
-        );
-
-        require(
-            _naturalUnit <= tokenFactory.maximumNaturalUnit(),
-            "RebalancingSetToken.constructor: Natural Unit too large"
-        );
-
-        // Require manager address is non-zero
-        require(
-            _manager != address(0),
-            "RebalancingSetToken.constructor: Invalid manager address"
-        );
-
-        // Require minimum rebalance interval and proposal period from factory
-        require(
-            _proposalPeriod >= tokenFactory.minimumProposalPeriod(),
-            "RebalancingSetToken.constructor: Proposal period too short"
-        );
-        require(
-            _rebalanceInterval >= tokenFactory.minimumRebalanceInterval(),
-            "RebalancingSetToken.constructor: Rebalance interval too short"
-        );
 
         state.core = IRebalancingSetFactory(_factory).core();
         state.vault = ICore(state.core).vault();
@@ -184,7 +157,7 @@ contract RebalancingSetToken is
     {
         uint256 auctionStartTime = StandardProposeLibrary.getAuctionStartTime();
 
-        // Validate proposal inputs and initialize auctionParameters
+        // Validate proposal inputs and initialize getAuctionParameters
         StandardProposeLibrary.validateProposalParams(
             _nextSet,
             _auctionLibrary,
@@ -196,14 +169,24 @@ contract RebalancingSetToken is
         );
 
         // Update state parameters
-        state.rebalance.auctionStartTime = auctionStartTime;
-        state.rebalance.auctionTimeToPivot = _auctionTimeToPivot;
-        state.rebalance.auctionStartPrice = _auctionStartPrice;
-        state.rebalance.auctionPivotPrice = _auctionPivotPrice;
-        state.rebalance.nextSet = _nextSet;
-        state.rebalance.auctionLibrary = _auctionLibrary;
-        state.rebalance.proposalStartTime = block.timestamp;
-        state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Proposal;
+        state = StandardProposeLibrary.updateState(
+            _nextSet,
+            _auctionLibrary,
+            auctionStartTime,
+            _auctionTimeToPivot,
+            _auctionStartPrice,
+            _auctionPivotPrice,
+            state
+        );
+
+        // state.rebalance.auctionStartTime = auctionStartTime;
+        // state.rebalance.auctionTimeToPivot = _auctionTimeToPivot;
+        // state.rebalance.auctionStartPrice = _auctionStartPrice;
+        // state.rebalance.auctionPivotPrice = _auctionPivotPrice;
+        // state.rebalance.nextSet = _nextSet;
+        // state.rebalance.auctionLibrary = _auctionLibrary;
+        // state.rebalance.proposalStartTime = block.timestamp;
+        // state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Proposal;
 
         emit RebalanceProposed(
             _nextSet,
@@ -219,13 +202,14 @@ contract RebalancingSetToken is
     function startRebalance()
         external
     {
-        // Redeem currentSet and define biddingParameters
-        biddingParameters = StandardStartRebalanceLibrary.startRebalance(state);
+        // Redeem currentSet and define state.bidding
+        state.bidding = StandardStartRebalanceLibrary.startRebalance(state);
 
         // Update state parameters
-        state.rebalance.startingCurrentSetAmount = biddingParameters.remainingCurrentSets;
-        state.rebalance.auctionStartTime = block.timestamp;
-        state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Rebalance;
+        state = StandardStartRebalanceLibrary.updateState(state);
+        // state.rebalance.startingCurrentSetAmount = state.bidding.remainingCurrentSets;
+        // state.rebalance.auctionStartTime = block.timestamp;
+        // state.rebalance.rebalanceState = RebalancingHelperLibrary.State.Rebalance;
 
         emit RebalanceStarted(state.currentSet, state.rebalance.nextSet);
     }
@@ -241,13 +225,7 @@ contract RebalancingSetToken is
         // Settle the rebalance and mint next Sets
         state.unitShares = StandardSettleRebalanceLibrary.settleRebalance(
             totalSupply(),
-            biddingParameters.remainingCurrentSets,
-            biddingParameters.minimumBid,
-            state.naturalUnit,
-            state.rebalance.nextSet,
-            state.core,
-            state.vault,
-            uint8(state.rebalance.rebalanceState)
+            state
         );
 
         // Update other state parameters
@@ -278,17 +256,14 @@ contract RebalancingSetToken is
             outflowUnitArray
         ) = StandardPlaceBidLibrary.placeBid(
             _quantity,
-            state.rebalance.auctionLibrary,
-            state.core,
-            biddingParameters,
-            auctionParameters(),
-            uint8(state.rebalance.rebalanceState)
+            getAuctionParameters(),
+            state
         );
 
         // Update remaining Set figure to transact
-        biddingParameters.remainingCurrentSets = biddingParameters.remainingCurrentSets.sub(_quantity);
+        state.bidding.remainingCurrentSets = state.bidding.remainingCurrentSets.sub(_quantity);
 
-        return (biddingParameters.combinedTokenArray, inflowUnitArray, outflowUnitArray);
+        return (state.bidding.combinedTokenArray, inflowUnitArray, outflowUnitArray);
     }
 
     /*
@@ -305,9 +280,7 @@ contract RebalancingSetToken is
             calculatedUnitShares
         ) = StandardSettleRebalanceLibrary.calculateNextSetIssueQuantity(
             totalSupply(),
-            state.naturalUnit,
-            state.rebalance.nextSet,
-            state.vault
+            state
         );
 
         // Fail auction and either reset to Default state or kill Rebalancing Set Token and enter Drawdown
@@ -315,11 +288,8 @@ contract RebalancingSetToken is
         uint8 integerRebalanceState = StandardFailAuctionLibrary.endFailedAuction(
             state.rebalance.startingCurrentSetAmount,
             calculatedUnitShares,
-            state.currentSet,
-            state.core,
-            auctionParameters(),
-            biddingParameters,
-            uint8(state.rebalance.rebalanceState)
+            getAuctionParameters(),
+            state
         );
         state.rebalance.rebalanceState = RebalancingHelperLibrary.State(integerRebalanceState);
 
@@ -342,13 +312,11 @@ contract RebalancingSetToken is
         view
         returns (uint256[] memory, uint256[] memory)
     {
-        
-
         return RebalancingHelperLibrary.getBidPrice(
             _quantity,
             state.rebalance.auctionLibrary,
-            biddingParameters,
-            auctionParameters(),
+            state.bidding,
+            getAuctionParameters(),
             uint8(state.rebalance.rebalanceState)
         );
     }
@@ -366,23 +334,25 @@ contract RebalancingSetToken is
     )
         external
     {
-        // Check that function caller is Core
-        require(
-            msg.sender == state.core,
-            "RebalancingSetToken.mint: Sender must be core"
-        );
+        RebalancingSetLibrary.validateMint(state);
 
-        // Check that set is not in Rebalance State
-        require(
-            state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
-            "RebalancingSetToken.mint: Cannot mint during Rebalance"
-        );
+        // // Check that function caller is Core
+        // require(
+        //     msg.sender == state.core,
+        //     "RebalancingSetToken.mint: Sender must be core"
+        // );
 
-        // Check that set is not in Drawdown State
-        require(
-            state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Drawdown,
-            "RebalancingSetToken.mint: Cannot mint during Drawdown"
-        );
+        // // Check that set is not in Rebalance State
+        // require(
+        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
+        //     "RebalancingSetToken.mint: Cannot mint during Rebalance"
+        // );
+
+        // // Check that set is not in Drawdown State
+        // require(
+        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Drawdown,
+        //     "RebalancingSetToken.mint: Cannot mint during Drawdown"
+        // );
 
         // Update token balance of the manager
         _mint(_issuer, _quantity);
@@ -401,27 +371,29 @@ contract RebalancingSetToken is
     )
         external
     {
-        // Check that set is not in Rebalancing State
-        require(
-            state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
-            "RebalancingSetToken.burn: Cannot burn during Rebalance"
-        );
+        RebalancingSetLibrary.validateBurn(state);
 
-        // Check to see if state is Drawdown
-        if (state.rebalance.rebalanceState == RebalancingHelperLibrary.State.Drawdown) {
-            // In Drawdown Sets can only be burned as part of the withdrawal process
-            require(
-                ICore(state.core).validModules(msg.sender),
-                "RebalancingSetToken.burn: Set cannot be redeemed during Drawdown"
-            );
-        } else {
-            // When in non-Rebalance or Drawdown state, check that function caller is Core
-            // so that Sets can be redeemed
-            require(
-                msg.sender == state.core,
-                "RebalancingSetToken.burn: Sender must be core"
-            );
-        }
+        // // Check that set is not in Rebalancing State
+        // require(
+        //     state.rebalance.rebalanceState != RebalancingHelperLibrary.State.Rebalance,
+        //     "RebalancingSetToken.burn: Cannot burn during Rebalance"
+        // );
+
+        // // Check to see if state is Drawdown
+        // if (state.rebalance.rebalanceState == RebalancingHelperLibrary.State.Drawdown) {
+        //     // In Drawdown Sets can only be burned as part of the withdrawal process
+        //     require(
+        //         ICore(state.core).validModules(msg.sender),
+        //         "RebalancingSetToken.burn: Set cannot be redeemed during Drawdown"
+        //     );
+        // } else {
+        //     // When in non-Rebalance or Drawdown state, check that function caller is Core
+        //     // so that Sets can be redeemed
+        //     require(
+        //         msg.sender == state.core,
+        //         "RebalancingSetToken.burn: Sender must be core"
+        //     );
+        // }
 
         _burn(_from, _quantity);
     }
@@ -443,75 +415,5 @@ contract RebalancingSetToken is
 
         emit NewManagerAdded(_newManager, state.manager);
         state.manager = _newManager;
-    }
-
-    /* ============ Public Getters ============ */
-
-    /*
-     * Get biddingParameters of Rebalancing Set
-     *
-     * @return  biddingParams       Object with bidding information
-     */
-    function getBiddingParameters()
-        external
-        view
-        returns (uint256[] memory)
-    {
-        uint256[] memory biddingParams = new uint256[](2);
-        biddingParams[0] = biddingParameters.minimumBid;
-        biddingParams[1] = biddingParameters.remainingCurrentSets;
-        return biddingParams;
-    }
-
-    /*
-     * Get combinedTokenArray of Rebalancing Set
-     *
-     * @return  combinedTokenArray
-     */
-    function getCombinedTokenArrayLength()
-        external
-        view
-        returns (uint256)
-    {
-        return biddingParameters.combinedTokenArray.length;
-    }
-
-    /*
-     * Get combinedTokenArray of Rebalancing Set
-     *
-     * @return  combinedTokenArray
-     */
-    function getCombinedTokenArray()
-        external
-        view
-        returns (address[] memory)
-    {
-        return biddingParameters.combinedTokenArray;
-    }
-
-    /*
-     * Get combinedCurrentUnits of Rebalancing Set
-     *
-     * @return  combinedCurrentUnits
-     */
-    function getCombinedCurrentUnits()
-        external
-        view
-        returns (uint256[] memory)
-    {
-        return biddingParameters.combinedCurrentUnits;
-    }
-
-    /*
-     * Get combinedNextSetUnits of Rebalancing Set
-     *
-     * @return  combinedNextSetUnits
-     */
-    function getCombinedNextSetUnits()
-        external
-        view
-        returns (uint256[] memory)
-    {
-        return biddingParameters.combinedNextSetUnits;
     }
 }

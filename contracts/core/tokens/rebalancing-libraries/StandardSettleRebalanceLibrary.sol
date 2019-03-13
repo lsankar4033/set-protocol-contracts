@@ -25,6 +25,7 @@ import { ICore } from "../../interfaces/ICore.sol";
 import { IVault } from "../../interfaces/IVault.sol";
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
+import { RebalancingSetState } from "./RebalancingSetState.sol";
 
 
 /**
@@ -51,36 +52,24 @@ library StandardSettleRebalanceLibrary {
      * vault, new unitShares follow from this calculation
      *
      * @param   _totalSupply            Total supply of rebalancing set token
-     * @param   _remainingCurrentSets   Amount of currentSets remaining
-     * @param   _minimumBid             Minimum bid allowed, used to see if valid settle
-     * @param   _naturalUnit            Natural unit of rebalancing set token
-     * @param   _nextSet                Address of next set
-     * @param   _coreAddress            Core address
-     * @param   _vaultAddress           Vault address
      * @return  uint256                 Amount of nextSets to issue
      */
     function settleRebalance(
         uint256 _totalSupply,
-        uint256 _remainingCurrentSets,
-        uint256 _minimumBid,
-        uint256 _naturalUnit,
-        address _nextSet,
-        address _coreAddress,
-        address _vaultAddress,
-        uint8 _rebalanceState
+        RebalancingSetState.State storage _state
     )
-        public
+        internal
         returns (uint256)
     {
         // Must be in Rebalance state to call settlement
         require(
-            _rebalanceState == uint8(RebalancingHelperLibrary.State.Rebalance),
+            uint8(_state.rebalance.rebalanceState) == uint8(RebalancingHelperLibrary.State.Rebalance),
             "RebalancingSetToken.settleRebalance: State must be Rebalance"
         );
 
         // Make sure all currentSets have been rebalanced
         require(
-            _remainingCurrentSets < _minimumBid,
+            _state.bidding.remainingCurrentSets < _state.bidding.minimumBid,
             "RebalancingSetToken.settleRebalance: Rebalance not completed"
         );
 
@@ -92,9 +81,7 @@ library StandardSettleRebalanceLibrary {
             nextUnitShares
         ) = calculateNextSetIssueQuantity(
             _totalSupply,
-            _naturalUnit,
-            _nextSet,
-            _vaultAddress
+            _state
         );
 
         require(
@@ -103,8 +90,8 @@ library StandardSettleRebalanceLibrary {
         );
 
         // Issue nextSet to RebalancingSetToken
-        ICore(_coreAddress).issueInVault(
-            _nextSet,
+        ICore(_state.core).issueInVault(
+            _state.rebalance.nextSet,
             issueAmount
         );
 
@@ -116,31 +103,26 @@ library StandardSettleRebalanceLibrary {
      * vault, unitShares following from this calculation.
      *
      * @param   _totalSupply        Total supply of rebalancing set token
-     * @param   _naturalUnit        Natural unit of rebalancing set token
-     * @param   _nextSet            Address of next set
-     * @param   _vaultAddress       Vault address
      * @return  uint256             Amount of nextSets to issue
      * @return  uint256             New unitShares for the rebalancingSetToken
      */
     function calculateNextSetIssueQuantity(
         uint256 _totalSupply,
-        uint256 _naturalUnit,
-        address _nextSet,
-        address _vaultAddress
+        RebalancingSetState.State storage _state
     )
-        public
+        internal
         view
         returns (uint256, uint256)
     {
         // Collect data necessary to compute issueAmounts
-        SetDetails memory setDetails = getUnderlyingSetDetails(_nextSet);
+        SetDetails memory setDetails = getUnderlyingSetDetails(_state.rebalance.nextSet);
         uint256 maxIssueAmount = calculateMaxIssueAmount(
-            _vaultAddress,
+            _state.vault,
             setDetails
         );
 
         // Calculate the amount of naturalUnits worth of rebalancingSetToken outstanding
-        uint256 naturalUnitsOutstanding = _totalSupply.div(_naturalUnit);
+        uint256 naturalUnitsOutstanding = _totalSupply.div(_state.naturalUnit);
 
         // Issue amount of Sets that is closest multiple of nextNaturalUnit to the maxIssueAmount
         // Since the initial division will round down to the nearest whole number when we multiply

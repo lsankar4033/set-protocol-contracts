@@ -44,6 +44,7 @@ const PayableExchangeIssuance = artifacts.require('PayableExchangeIssuance');
 const RebalanceAuctionModule = artifacts.require('RebalanceAuctionModule');
 const RebalanceAuctionModuleMock = artifacts.require('RebalanceAuctionModuleMock');
 const RebalancingHelperLibrary = artifacts.require('RebalancingHelperLibrary');
+const RebalancingSetLibrary = artifacts.require('RebalancingSetLibrary');
 const RebalancingSetTokenFactory = artifacts.require('RebalancingSetTokenFactory');
 const RebalancingTokenIssuanceModule = artifacts.require('RebalancingTokenIssuanceModule');
 const SetToken = artifacts.require('SetToken');
@@ -239,12 +240,16 @@ export class CoreWrapper {
       { from: this._tokenOwnerAddress },
     );
 
+    await RebalancingSetLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await StandardProposeLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await StandardStartRebalanceLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await StandardPlaceBidLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await StandardSettleRebalanceLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await StandardFailAuctionLibrary.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
 
+    const truffleRebalancingSetLibrary = await RebalancingSetLibrary.new(
+      { from: this._tokenOwnerAddress },
+    );
     const truffleStandardProposeLibrary = await StandardProposeLibrary.new(
       { from: this._tokenOwnerAddress },
     );
@@ -261,6 +266,7 @@ export class CoreWrapper {
       { from: this._tokenOwnerAddress },
     );
 
+    await contract.link('RebalancingSetLibrary', truffleRebalancingSetLibrary.address);
     await contract.link('RebalancingHelperLibrary', truffleRebalancingHelperLibrary.address);
     await contract.link('StandardProposeLibrary', truffleStandardProposeLibrary.address);
     await contract.link('StandardStartRebalanceLibrary', truffleStandardStartRebalanceLibrary.address);
