@@ -308,7 +308,7 @@ contract RebalancingSetToken is
     )
         external
     {
-        // RebalancingSetLibrary.validateMint(state);
+        RebalancingSetLibrary.validateMint(state);
 
         // Update token balance of the manager
         _mint(_issuer, _quantity);
@@ -327,7 +327,7 @@ contract RebalancingSetToken is
     )
         external
     {
-        // RebalancingSetLibrary.validateBurn(state);
+        RebalancingSetLibrary.validateBurn(state);
 
         _burn(_from, _quantity);
     }
