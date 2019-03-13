@@ -30,51 +30,6 @@ import { RebalancingSetState } from "./RebalancingSetState.sol";
  * xxx
  */
 library RebalancingSetLibrary {
-    function validateConstructor(
-        address _factory,
-        address _manager,
-        uint256 _initialUnitShares,
-        uint256 _naturalUnit,
-        uint256 _proposalPeriod,
-        uint256 _rebalanceInterval
-    )
-        internal
-    {
-           // Require initial unit shares is non-zero
-        require(
-            _initialUnitShares > 0,
-            "RebalancingSetToken.constructor: Unit shares must be positive"
-        );
-
-        IRebalancingSetFactory tokenFactory = IRebalancingSetFactory(_factory);
-
-        require(
-            _naturalUnit >= tokenFactory.minimumNaturalUnit(),
-            "RebalancingSetToken.constructor: Natural Unit too low"
-        );
-
-        require(
-            _naturalUnit <= tokenFactory.maximumNaturalUnit(),
-            "RebalancingSetToken.constructor: Natural Unit too large"
-        );
-
-        // Require manager address is non-zero
-        require(
-            _manager != address(0),
-            "RebalancingSetToken.constructor: Invalid manager address"
-        );
-
-        // Require minimum rebalance interval and proposal period from factory
-        require(
-            _proposalPeriod >= tokenFactory.minimumProposalPeriod(),
-            "RebalancingSetToken.constructor: Proposal period too short"
-        );
-        require(
-            _rebalanceInterval >= tokenFactory.minimumRebalanceInterval(),
-            "RebalancingSetToken.constructor: Rebalance interval too short"
-        );
-    }
-
     function validateMint(
         RebalancingSetState.State storage _state
     )
@@ -128,6 +83,4 @@ library RebalancingSetLibrary {
             );
         }        
     }
-
-
 }

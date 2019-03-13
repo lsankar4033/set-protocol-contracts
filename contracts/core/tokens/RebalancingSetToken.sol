@@ -24,13 +24,10 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { AddressArrayUtils } from "../../lib/AddressArrayUtils.sol";
 import { Bytes32 } from "../../lib/Bytes32.sol";
-import { CommonMath } from "../../lib/CommonMath.sol";
 import { ERC20Wrapper } from "../../lib/ERC20Wrapper.sol";
 import { ICore } from "../interfaces/ICore.sol";
 import { IRebalancingSetFactory } from "../interfaces/IRebalancingSetFactory.sol";
 import { ISetToken } from "../interfaces/ISetToken.sol";
-import { IVault } from "../interfaces/IVault.sol";
-import { IWhiteList } from "../interfaces/IWhiteList.sol";
 import { RebalancingHelperLibrary } from "../lib/RebalancingHelperLibrary.sol";
 import { RebalancingSetLibrary } from "./rebalancing-libraries/RebalancingSetLibrary.sol";
 import { RebalancingSetState } from "./rebalancing-libraries/RebalancingSetState.sol";
@@ -110,15 +107,6 @@ contract RebalancingSetToken is
             18
         )
     {
-        RebalancingSetLibrary.validateConstructor(
-            _factory,
-            _manager,
-            _initialUnitShares,
-            _naturalUnit,
-            _proposalPeriod,
-            _rebalanceInterval
-        );
-
         state.core = IRebalancingSetFactory(_factory).core();
         state.vault = ICore(state.core).vault();
         state.componentWhiteListAddress = _componentWhiteList;
@@ -320,7 +308,7 @@ contract RebalancingSetToken is
     )
         external
     {
-        RebalancingSetLibrary.validateMint(state);
+        // RebalancingSetLibrary.validateMint(state);
 
         // Update token balance of the manager
         _mint(_issuer, _quantity);
@@ -339,7 +327,7 @@ contract RebalancingSetToken is
     )
         external
     {
-        RebalancingSetLibrary.validateBurn(state);
+        // RebalancingSetLibrary.validateBurn(state);
 
         _burn(_from, _quantity);
     }

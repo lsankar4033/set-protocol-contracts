@@ -166,9 +166,41 @@ contract RebalancingSetTokenFactory {
             "RebalancingSetTokenFactory.create: Invalid or disabled SetToken address"
         );
 
+        require(
+            _naturalUnit >= minimumNaturalUnit,
+            "RebalancingSetToken.constructor: Natural Unit too low"
+        );
+
+        require(
+            _naturalUnit <= maximumNaturalUnit,
+            "RebalancingSetToken.constructor: Natural Unit too large"
+        );
+
         // Parse _callData for additional parameters
         InitRebalancingParameters memory parameters = parseRebalanceSetCallData(
             _callData
+        );
+
+        // Require initial unit shares is non-zero
+        require(
+            _units[0] > 0,
+            "RebalancingSetToken.constructor: Unit shares must be positive"
+        );
+
+        // Require manager address is non-zero
+        require(
+            parameters.manager != address(0),
+            "RebalancingSetToken.constructor: Invalid manager address"
+        );
+
+        // Require minimum rebalance interval and proposal period from factory
+        require(
+            parameters.proposalPeriod >= minimumProposalPeriod,
+            "RebalancingSetToken.constructor: Proposal period too short"
+        );
+        require(
+            parameters.rebalanceInterval >= minimumRebalanceInterval,
+            "RebalancingSetToken.constructor: Rebalance interval too short"
         );
 
         // Create a new SetToken contract

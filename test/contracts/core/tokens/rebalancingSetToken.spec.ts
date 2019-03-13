@@ -229,66 +229,6 @@ contract('RebalancingSetToken', accounts => {
       const tokenState = await rebalancingSetToken.rebalanceState.callAsync();
       expect(tokenState).to.be.bignumber.equal(SetUtils.REBALANCING_STATE.DEFAULT);
     });
-
-    describe('when the proposal period is less than one day in seconds', async () => {
-      beforeEach(async () => {
-        subjectProposalPeriod = new BigNumber(5000);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-    describe('when the rebalanceInterval is less than one day in seconds', async () => {
-      beforeEach(async () => {
-        subjectRebalanceInterval = new BigNumber(5000);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-    describe('when the initial unit shares is 0', async () => {
-      beforeEach(async () => {
-        subjectInitialUnitShares = ZERO;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-   describe('when the initial natural unit is less than the minimum', async () => {
-      beforeEach(async () => {
-        subjectNaturalUnit = ZERO;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-   describe('when the initial natural unit is greater than the maximum', async () => {
-      beforeEach(async () => {
-        subjectNaturalUnit = new BigNumber(10 ** 15);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-    describe('when the manager address is null', async () => {
-      beforeEach(async () => {
-        subjectManager = NULL_ADDRESS;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
   });
 
   describe('#getComponents', async () => {

@@ -42,6 +42,7 @@ const Core = artifacts.require('Core');
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
+const { NULL_ADDRESS } = SetUtils.CONSTANTS;
 
 
 contract('RebalancingSetTokenFactory', accounts => {
@@ -310,6 +311,82 @@ contract('RebalancingSetTokenFactory', accounts => {
     describe('when the units length is not 1', async () => {
       beforeEach(async () => {
         subjectUnits = [new BigNumber(1), new BigNumber(1)];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+
+    describe('when the proposal period is less than one day in seconds', async () => {
+      beforeEach(async () => {
+        callDataProposalPeriod = new BigNumber(5000);
+        subjectCallData = SetUtils.generateRebalancingSetTokenCallData(
+          callDataManagerAddress,
+          callDataProposalPeriod,
+          callDataRebalanceInterval,
+        );
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when the rebalanceInterval is less than one day in seconds', async () => {
+      beforeEach(async () => {
+        callDataRebalanceInterval = new BigNumber(5000);
+        subjectCallData = SetUtils.generateRebalancingSetTokenCallData(
+          callDataManagerAddress,
+          callDataProposalPeriod,
+          callDataRebalanceInterval,
+        );
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when the initial unit shares is 0', async () => {
+      beforeEach(async () => {
+        subjectUnits = [ZERO];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+   describe('when the initial natural unit is less than the minimum', async () => {
+      beforeEach(async () => {
+        subjectNaturalUnit = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+   describe('when the initial natural unit is greater than the maximum', async () => {
+      beforeEach(async () => {
+        subjectNaturalUnit = new BigNumber(10 ** 15);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when the manager address is null', async () => {
+      beforeEach(async () => {
+        callDataManagerAddress = NULL_ADDRESS;
+        subjectCallData = SetUtils.generateRebalancingSetTokenCallData(
+          callDataManagerAddress,
+          callDataProposalPeriod,
+          callDataRebalanceInterval,
+        );
       });
 
       it('should revert', async () => {
