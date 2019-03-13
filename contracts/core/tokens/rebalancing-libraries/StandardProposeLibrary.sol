@@ -37,17 +37,6 @@ import { RebalancingSetState } from "./RebalancingSetState.sol";
 library StandardProposeLibrary {
     using SafeMath for uint256;
 
-    /* ============ Structs ============ */
-
-    // struct ProposeAuctionParameters {
-    //     address manager;
-    //     address currentSet;
-    //     address coreAddress;
-    //     uint256 lastRebalanceTimestamp;
-    //     uint256 rebalanceInterval;
-    //     uint8 rebalanceState;
-    // }
-
     /* ============ Internal Functions ============ */
 
     /**
@@ -59,13 +48,13 @@ library StandardProposeLibrary {
      * @param _auctionPivotPrice            The price at which the price curve switches from linear to exponential
      * @return                              Struct containing auction price curve parameters
      */
-    function propose(
+    function validateProposalParams(
         address _nextSet,
         address _auctionLibrary,
+        uint256 _auctionStartTime,
         uint256 _auctionTimeToPivot,
         uint256 _auctionStartPrice,
         uint256 _auctionPivotPrice,
-        RebalancingSetState.RebalancingState storage _rebalancingState,
         RebalancingSetState.State storage _state
     )
         public
@@ -82,15 +71,15 @@ library StandardProposeLibrary {
 
         // New Proposal can only be made in Default and Proposal state
         require(
-            uint8(_rebalancingState.rebalanceState) == uint8(RebalancingHelperLibrary.State.Default) ||
-            uint8(_rebalancingState.rebalanceState) == uint8(RebalancingHelperLibrary.State.Proposal),
+            uint8(_state.rebalance.rebalanceState) == uint8(RebalancingHelperLibrary.State.Default) ||
+            uint8(_state.rebalance.rebalanceState) == uint8(RebalancingHelperLibrary.State.Proposal),
             "RebalancingSetToken.propose: State must be in Propose or Default"
         );
 
         // Make sure enough time has passed from last rebalance to start a new proposal
         require(
-            block.timestamp >= _rebalancingState.lastRebalanceTimestamp.add(
-                _rebalancingState.rebalanceInterval
+            block.timestamp >= _state.rebalance.lastRebalanceTimestamp.add(
+                _state.rebalance.rebalanceInterval
             ),
             "RebalancingSetToken.propose: Rebalance interval not elapsed"
         );
@@ -142,14 +131,20 @@ library StandardProposeLibrary {
                 auctionTimeToPivot: _auctionTimeToPivot,
                 auctionStartPrice: _auctionStartPrice,
                 auctionPivotPrice: _auctionPivotPrice,
-                auctionStartTime: 0
+                auctionStartTime: _auctionStartTime
             });
 
         // Check that pivot price is compliant with library restrictions
         IAuctionPriceCurve(_auctionLibrary).validateAuctionPriceParameters(
             auctionParameters
         );
+    }
 
-        return auctionParameters;
+    function getAuctionStartTime()
+        public
+        view
+        returns(uint256)
+    {
+        return 0;
     }
 }

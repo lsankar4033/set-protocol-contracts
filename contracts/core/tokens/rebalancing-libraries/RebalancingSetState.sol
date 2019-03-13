@@ -54,6 +54,7 @@ contract RebalancingSetState {
         // State updated after every rebalance
         address currentSet;
         uint256 unitShares;
+        RebalancingState rebalance;
     }
 
     struct RebalancingState {
@@ -80,8 +81,6 @@ contract RebalancingSetState {
     /* ============ State Variables ============ */
 
     State public state;
-
-    RebalancingState public rebalancingState;
 
     /* ============ Public Getters ============ */
 
@@ -130,7 +129,7 @@ contract RebalancingSetState {
         view
         returns(uint8)
     {
-        return uint8(rebalancingState.rebalanceState);
+        return uint8(state.rebalance.rebalanceState);
     }
 
     function currentSet()
@@ -154,7 +153,7 @@ contract RebalancingSetState {
         view
         returns(uint256)
     {
-        return rebalancingState.proposalPeriod;
+        return state.rebalance.proposalPeriod;
     }
 
     function rebalanceInterval()
@@ -162,7 +161,7 @@ contract RebalancingSetState {
         view
         returns(uint256)
     {
-        return rebalancingState.rebalanceInterval;
+        return state.rebalance.rebalanceInterval;
     }
 
     function lastRebalanceTimestamp()
@@ -170,7 +169,7 @@ contract RebalancingSetState {
         view
         returns(uint256)
     {
-        return rebalancingState.lastRebalanceTimestamp;
+        return state.rebalance.lastRebalanceTimestamp;
     }
 
     function proposalStartTime()
@@ -178,7 +177,7 @@ contract RebalancingSetState {
         view
         returns(uint256)
     {
-        return rebalancingState.proposalStartTime;
+        return state.rebalance.proposalStartTime;
     }
 
     function nextSet()
@@ -186,7 +185,7 @@ contract RebalancingSetState {
         view
         returns(address)
     {
-        return rebalancingState.nextSet;
+        return state.rebalance.nextSet;
     }
 
     function auctionLibrary()
@@ -194,7 +193,7 @@ contract RebalancingSetState {
         view
         returns(address)
     {
-        return rebalancingState.auctionLibrary;
+        return state.rebalance.auctionLibrary;
     }
 
     function startingCurrentSetAmount()
@@ -202,7 +201,7 @@ contract RebalancingSetState {
         view
         returns(uint256)
     {
-        return rebalancingState.startingCurrentSetAmount;
+        return state.rebalance.startingCurrentSetAmount;
     }
 
     /*
@@ -241,10 +240,10 @@ contract RebalancingSetState {
         returns (RebalancingHelperLibrary.AuctionPriceParameters memory)
     {
         return RebalancingHelperLibrary.AuctionPriceParameters({
-            auctionStartTime: rebalancingState.auctionStartTime,
-            auctionTimeToPivot: rebalancingState.auctionTimeToPivot,
-            auctionStartPrice: rebalancingState.auctionStartPrice,
-            auctionPivotPrice: rebalancingState.auctionPivotPrice
+            auctionStartTime: state.rebalance.auctionStartTime,
+            auctionTimeToPivot: state.rebalance.auctionTimeToPivot,
+            auctionStartPrice: state.rebalance.auctionStartPrice,
+            auctionPivotPrice: state.rebalance.auctionPivotPrice
         });
     }
 
@@ -259,10 +258,10 @@ contract RebalancingSetState {
         returns (uint256[] memory)
     {
         uint256[] memory auctionParams = new uint256[](4);
-        auctionParams[0] = rebalancingState.auctionStartTime;
-        auctionParams[1] = rebalancingState.auctionTimeToPivot;
-        auctionParams[2] = rebalancingState.auctionStartPrice;
-        auctionParams[3] = rebalancingState.auctionPivotPrice;
+        auctionParams[0] = state.rebalance.auctionStartTime;
+        auctionParams[1] = state.rebalance.auctionTimeToPivot;
+        auctionParams[2] = state.rebalance.auctionStartPrice;
+        auctionParams[3] = state.rebalance.auctionPivotPrice;
         return auctionParams;
     }
 

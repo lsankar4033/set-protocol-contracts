@@ -26,6 +26,7 @@ import { ICore } from "../../interfaces/ICore.sol";
 import { ISetToken } from "../../interfaces/ISetToken.sol";
 import { IVault } from "../../interfaces/IVault.sol";
 import { RebalancingHelperLibrary } from "../../lib/RebalancingHelperLibrary.sol";
+import { RebalancingSetState } from "./RebalancingSetState.sol";
 
 /**
  * @title StandardStartRebalanceLibrary
@@ -62,53 +63,38 @@ library StandardStartRebalanceLibrary {
     /**
      * Function used to validate inputs to propose function and initialize biddingParameters struct
      *
-     * @param _currentSet           Address of current Set
-     * @param _nextSet              Address of next Set
-     * @param _auctionLibrary       Address of auction library being used in rebalance
-     * @param _coreAddress          Core address
-     * @param _vaultAddress         Vault address
-     * @param _proposalStartTime    Start time of proposal period
-     * @param _proposalPeriod       Required length of proposal period
-     * @param _rebalanceState       State rebalancing set token is in
      * @return                      Struct containing bidding parameters
      */
     function startRebalance(
-        address _currentSet,
-        address _nextSet,
-        address _auctionLibrary,
-        address _coreAddress,
-        address _vaultAddress,
-        uint256 _proposalStartTime,
-        uint256 _proposalPeriod,
-        uint8 _rebalanceState
+        RebalancingSetState.State storage _state
     )
         public
         returns (BiddingParameters memory)
     {
         // Must be in "Proposal" state before going into "Rebalance" state
         require(
-            _rebalanceState == uint8(RebalancingHelperLibrary.State.Proposal),
+            uint8(_state.rebalance.rebalanceState) == uint8(RebalancingHelperLibrary.State.Proposal),
             "RebalancingSetToken.startRebalance: State must be Proposal"
         );
 
         // Be sure the full proposal period has elapsed
         require(
-            block.timestamp >= _proposalStartTime.add(_proposalPeriod),
+            block.timestamp >= _state.rebalance.proposalStartTime.add(_state.rebalance.proposalPeriod),
             "RebalancingSetToken.startRebalance: Proposal period not elapsed"
         );
 
         // Create combined array data structures and calculate minimum bid needed for auction
         BiddingParameters memory biddingParameters = setUpBiddingParameters(
-            _currentSet,
-            _nextSet,
-            _auctionLibrary
+            _state.currentSet,
+            _state.rebalance.nextSet,
+            _state.rebalance.auctionLibrary
         );
 
         // Redeem rounded quantity of current Sets and return redeemed amount of Sets
         biddingParameters.remainingCurrentSets = redeemCurrentSet(
-            _currentSet,
-            _coreAddress,
-            _vaultAddress
+            _state.currentSet,
+            _state.core,
+            _state.vault
         );
 
         // Require remainingCurrentSets to be greater than minimumBid otherwise no bidding would
